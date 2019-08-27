@@ -1,0 +1,205 @@
+import { rollup, watch } from "rollup";
+import { basename, resolve } from "path";
+import { DEFAULT_EXTENSIONS } from "@babel/core";
+import commonjs from "rollup-plugin-commonjs";
+import nodeResolve from "rollup-plugin-node-resolve";
+import typescript from "rollup-plugin-typescript2";
+import buble from "rollup-plugin-buble";
+import babel from "rollup-plugin-babel";
+import { terser } from "rollup-plugin-terser";
+import gzip from "gzip-size";
+import { prettyTerserConfig, minifiedTerserConfig } from "./config/terser";
+
+const pkgInfo = require(resolve(process.cwd(), 'package.json'));
+const { main, peerDependencies, dependencies } = pkgInfo;
+const name = basename(main, ".js");
+const external = ["dns", "fs", "path", "url"];
+
+
+if (pkgInfo.peerDependencies) {
+  external.push(...Object.keys(peerDependencies));
+}
+
+if (pkgInfo.dependencies) {
+  external.push(...Object.keys(dependencies));
+}
+
+const externalPredicate = new RegExp(`^(${external.join("|")})($|/)`);
+const externalTest = id => {
+  if (id === "babel-plugin-transform-async-to-promises/helpers") return false;
+  return externalPredicate.test(id);
+};
+
+function round(x, precision) {
+  var y = +x + (precision === undefined ? 0.5 : precision / 2);
+  return y - (y % (precision === undefined ? 1 : +precision));
+}
+const prettyPrintBytes = (size) => {
+  if (size / 1000 > 1) {
+    return `${(size / 1000).toFixed(2)}kB`
+  }
+  return `${size}B}`;
+}
+async function getGzippedSize(code, name) {
+  const size = await gzip(code);
+  return `${name} (gz): ${prettyPrintBytes(size)}`;
+}
+
+const getPlugins = (isProduction = false) => [
+  nodeResolve({
+    mainFields: ['module', 'jsnext', 'main'],
+    browser: true
+  }),
+  commonjs({
+    ignoreGlobal: true,
+    include: /\/node_modules\//,
+    namedExports: {
+      'react': Object.keys(require('react'))
+    },
+  }),
+  typescript({
+    typescript: require('typescript'),
+    cacheRoot: './node_modules/.cache/.rts2_cache',
+    useTsconfigDeclarationDir: true,
+    tsconfigDefaults: {
+      compilerOptions: {
+        sourceMap: true
+      },
+    },
+    tsconfigOverride: {
+     exclude: [
+       'src/**/*.test.ts',
+       'src/**/*.test.tsx',
+       'src/**/test-utils/*'
+     ],
+     compilerOptions: {
+        declaration: !isProduction,
+        declarationDir: './dist/types/',
+        target: 'es6',
+      },
+    },
+  }),
+  buble({
+    transforms: {
+      unicodeRegExp: false,
+      dangerousForOf: true,
+      dangerousTaggedTemplateString: true
+    },
+    objectAssign: 'Object.assign',
+    exclude: 'node_modules/**'
+  }),
+  babel({
+    babelrc: false,
+    extensions: [...DEFAULT_EXTENSIONS, 'ts', 'tsx'],
+    exclude: 'node_modules/**',
+    presets: [],
+    plugins: [
+      ['babel-plugin-closure-elimination', {}],
+      ['@babel/plugin-transform-object-assign', {}],
+      ['@babel/plugin-transform-react-jsx', {
+        pragma: 'React.createElement',
+        pragmaFrag: 'React.Fragment',
+        useBuiltIns: true
+      }],
+      ['babel-plugin-transform-async-to-promises', {
+        inlineHelpers: true,
+        externalHelpers: true
+      }]
+    ]
+  }),
+  // @ts-ignore
+  terser(isProduction ? minifiedTerserConfig : prettyTerserConfig),
+];
+
+type BuildType = 'esm' | 'cjs';
+
+const getInputOptions = ({ production }) => {
+  return {
+    plugins: getPlugins(production),
+    input: "./src/index.ts",
+    external: externalTest,
+    treeshake: {
+      propertyReadSideEffects: false
+    }
+  };
+}
+
+const baseOutputOptions = {
+  sourcemap: true,
+  legacy: true,
+  freeze: false
+};
+
+const getOutputOptions = ({ type, production }: { type: BuildType, production: boolean }) => {
+  if (production) {
+    return {
+      ...baseOutputOptions,
+      file: `./dist/${name}${type === 'esm' ? '.es' : ''}.min.js`,
+      format: type
+    }
+  }
+  return {
+    ...baseOutputOptions,
+    esModule: false,
+    file: `./dist/${name}${type === "esm" ? ".es" : ""}.js`,
+    format: type
+  };
+}
+
+export default async function build({ watch }) {
+  const steps: Array<{ type: BuildType, production: boolean }> = [
+    { type: "cjs", production: false },
+    { type: "esm", production: false },
+    { type: "cjs", production: true },
+    { type: "esm", production: true }
+  ];
+
+
+  if (watch) {
+		return new Promise((_, reject) => {
+      steps.map(step => {
+        const inputOptions = getInputOptions(step);
+        const outputOptions = getOutputOptions(step);
+        watch(
+          Object.assign(
+            {
+              output: outputOptions,
+              watch: { exclude: "node_modules/**" }
+            },
+            inputOptions
+          )
+        ).on("event", e => {
+          if (e.code === "FATAL") {
+            return reject(e.error);
+          } else if (e.code === "ERROR") {
+            console.error(e.error);
+          }
+          if (e.code === "END") {
+            console.log('success');
+          }
+        });
+      });
+    });
+  }
+
+  const bundleSizes: Array<string> = [];
+  try {
+    for (let i = 0; i < steps.length; i++) {
+      const inputOptions = getInputOptions(steps[i]);
+      const outputOptions = getOutputOptions(steps[i]);
+      const bundle = await rollup(inputOptions);
+      const { output } = await bundle.generate(outputOptions);
+      const bundleValues = Object.values(output);
+      for (let i = 0; i < bundleValues.length; i++) {
+        const { code, fileName } = bundleValues[i];
+        if (code) { bundleSizes.push(await getGzippedSize(code, fileName)); }
+      }
+      await bundle.write(outputOptions);
+    }
+  } catch(e) {
+    console.error(e);
+  }
+
+  console.log('Build success');
+  bundleSizes.forEach(entry => console.log(entry));
+}
