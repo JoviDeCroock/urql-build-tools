@@ -32,10 +32,6 @@ const externalTest = id => {
   return externalPredicate.test(id);
 };
 
-function round(x, precision) {
-  var y = +x + (precision === undefined ? 0.5 : precision / 2);
-  return y - (y % (precision === undefined ? 1 : +precision));
-}
 const prettyPrintBytes = (size) => {
   if (size / 1000 > 1) {
     return `${(size / 1000).toFixed(2)}kB`
@@ -185,8 +181,7 @@ export default async function build({ watch }) {
           output: outputOptions,
           watch: { exclude: "node_modules/**" }
         };
-        // @ts-ignore
-        rollupWatch(watchOptions).on("event", e => {
+        rollupWatch(watchOptions as any).on("event", e => {
           if (e.code === "FATAL") {
             console.error(e);
             return reject(e.error);

@@ -8,6 +8,7 @@
   "sideEffects": false,
   "scripts": {
     "build": "tsc",
+    "lint": "eslint . --ext .ts,.tsx",
     "watch": "tsc -w"
   },
   "repository": {
