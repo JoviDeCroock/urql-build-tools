@@ -110,11 +110,11 @@ const getPlugins = (isProduction = false) => [
       }]
     ]
   }),
-  replace({
-    'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development')
+  isProduction && replace({
+    'process.env.NODE_ENV': JSON.stringify('production')
   }),
   terser(isProduction ? minifiedTerserConfig : prettyTerserConfig),
-];
+].filter(Boolean);
 
 type BuildType = 'esm' | 'cjs';
 
