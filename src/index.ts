@@ -111,7 +111,7 @@ const getPlugins = (isProduction = false) => [
     ]
   }),
   replace({
-    'process.env.NODE_ENV': JSON.stringify(isProduction)
+    'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development')
   }),
   // @ts-ignore
   terser(isProduction ? minifiedTerserConfig : prettyTerserConfig),
