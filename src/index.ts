@@ -1,4 +1,4 @@
-import { rollup, watch } from "rollup";
+import { rollup, watch as rollupWatch } from "rollup";
 import { basename, resolve } from "path";
 import { DEFAULT_EXTENSIONS } from "@babel/core";
 import commonjs from "rollup-plugin-commonjs";
@@ -160,22 +160,21 @@ export default async function build({ watch }) {
       steps.map(step => {
         const inputOptions = getInputOptions(step);
         const outputOptions = getOutputOptions(step);
-        watch(
-          Object.assign(
-            {
-              output: outputOptions,
-              watch: { exclude: "node_modules/**" }
-            },
-            inputOptions
-          )
-        ).on("event", e => {
+        const watchOptions = {
+          ...inputOptions,
+          output: outputOptions,
+          watch: { exclude: "node_modules/**" }
+        };
+        // @ts-ignore
+        rollupWatch(watchOptions).on("event", e => {
           if (e.code === "FATAL") {
+            console.error(e);
             return reject(e.error);
           } else if (e.code === "ERROR") {
             console.error(e.error);
           }
           if (e.code === "END") {
-            console.log('success');
+            console.log("success");
           }
         });
       });
@@ -184,10 +183,13 @@ export default async function build({ watch }) {
 
   const bundleSizes: Array<string> = [];
   try {
+    let cache;
     for (let i = 0; i < steps.length; i++) {
       const inputOptions = getInputOptions(steps[i]);
+      (inputOptions as any).cache = cache;
       const outputOptions = getOutputOptions(steps[i]);
       const bundle = await rollup(inputOptions);
+      cache = bundle;
       const { output } = await bundle.generate(outputOptions);
       const bundleValues = Object.values(output);
       for (let i = 0; i < bundleValues.length; i++) {
