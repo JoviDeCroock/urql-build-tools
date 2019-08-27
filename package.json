@@ -2,7 +2,9 @@
   "name": "@urql/build-tools",
   "version": "0.0.1",
   "description": "The build tools we use for urql packages",
-  "main": "dist/urql-build-tools.js",
+  "main": "dist/index.js",
+  "source": "src/index.ts",
+  "bin": "dist/cli.js",
   "sideEffects": false,
   "scripts": {
     "build": "tsc",
