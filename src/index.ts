@@ -6,9 +6,11 @@ import nodeResolve from "rollup-plugin-node-resolve";
 import typescript from "rollup-plugin-typescript2";
 import buble from "rollup-plugin-buble";
 import babel from "rollup-plugin-babel";
+import replace from "rollup-plugin-replace";
 import { terser } from "rollup-plugin-terser";
 import gzip from "gzip-size";
 import { prettyTerserConfig, minifiedTerserConfig } from "./config/terser";
+import transformInvariantWarning from './babel/transformInvariantWarning';
 
 const pkgInfo = require(resolve(process.cwd(), 'package.json'));
 const { main, peerDependencies, dependencies } = pkgInfo;
@@ -94,6 +96,7 @@ const getPlugins = (isProduction = false) => [
     exclude: 'node_modules/**',
     presets: [],
     plugins: [
+      transformInvariantWarning,
       ['babel-plugin-closure-elimination', {}],
       ['@babel/plugin-transform-object-assign', {}],
       ['@babel/plugin-transform-react-jsx', {
@@ -106,6 +109,9 @@ const getPlugins = (isProduction = false) => [
         externalHelpers: true
       }]
     ]
+  }),
+  replace({
+    'process.env.NODE_ENV': JSON.stringify(isProduction)
   }),
   // @ts-ignore
   terser(isProduction ? minifiedTerserConfig : prettyTerserConfig),
