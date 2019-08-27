@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "outDir": "dist",
+    "lib": ["dom", "esnext"],
+    "jsx": "react",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "es5",
+    "strict": true,
+    "noImplicitAny": false,
+    "noUnusedParameters": true,
+    "sourceMap": true,
+    "pretty": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}
