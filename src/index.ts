@@ -113,13 +113,27 @@ const getPlugins = (isProduction = false) => [
   replace({
     'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development')
   }),
-  // @ts-ignore
   terser(isProduction ? minifiedTerserConfig : prettyTerserConfig),
 ];
 
 type BuildType = 'esm' | 'cjs';
 
-const getInputOptions = ({ production }) => {
+interface BundleValue {
+  code?: string;
+  fileName: string;
+}
+
+interface InputOptions {
+  cache?: any;
+  plugins: any[];
+  input: string;
+  external: any;
+  treeshake: {
+    propertyReadSideEffects: boolean;
+  }
+}
+
+const getInputOptions = ({ production }): InputOptions => {
   return {
     plugins: getPlugins(production),
     input: "./src/index.ts",
@@ -197,7 +211,7 @@ export default async function build({ watch }) {
       const bundle = await rollup(inputOptions);
       cache = bundle;
       const { output } = await bundle.generate(outputOptions);
-      const bundleValues = Object.values(output);
+      const bundleValues: BundleValue[] = Object.values(output);
       for (let i = 0; i < bundleValues.length; i++) {
         const { code, fileName } = bundleValues[i];
         if (code) { bundleSizes.push(await getGzippedSize(code, fileName)); }

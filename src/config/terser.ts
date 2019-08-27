@@ -1,7 +1,9 @@
+type Ecma = 5;
+
 export const prettyTerserConfig = {
   sourcemap: true,
   warnings: true,
-  ecma: 5,
+  ecma: 5 as Ecma,
   keep_fnames: true,
   ie8: false,
   compress: {
@@ -28,7 +30,7 @@ export const prettyTerserConfig = {
 export const minifiedTerserConfig = {
   sourcemap: true,
   warnings: true,
-  ecma: 5,
+  ecma: 5 as Ecma,
   ie8: false,
   toplevel: true,
   compress: {
