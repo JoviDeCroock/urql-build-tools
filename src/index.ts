@@ -11,7 +11,7 @@ import { terser } from "rollup-plugin-terser";
 import gzip from "gzip-size";
 import { prettyTerserConfig, minifiedTerserConfig } from "./config/terser";
 import transformInvariantWarning from './babel/transformInvariantWarning';
-import { BuildType, BundleValue, OutputOptions } from "./types";
+import { BundleValue, OutputOptions } from "./types";
 import { baseOutputOptions, external as baseExternals, steps } from "./constants";
 import { prettyPrintBytes } from "./utils";
 

@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "TODO"
+    "url": "git@github.com:FormidableLabs/urql-build-tools.git"
   },
   "keywords": [
     "build-tools",
@@ -22,9 +22,9 @@
   "author": "Formidable",
   "license": "MIT",
   "bugs": {
-    "url": "TODO"
+    "url": "https://github.com/FormidableLabs/urql-build-tools/issues"
   },
-  "homepage": "TODO",
+  "homepage": "https://github.com/FormidableLabs/urql-build-tools",
   "lint-staged": {
     "*.{json,md}": [
       "prettier --write",
