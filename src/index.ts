@@ -1,4 +1,4 @@
-import { rollup, watch as rollupWatch } from "rollup";
+import { rollup, watch as rollupWatch, InputOptions } from "rollup";
 import { basename, resolve } from "path";
 import { DEFAULT_EXTENSIONS } from "@babel/core";
 import commonjs from "rollup-plugin-commonjs";
@@ -11,12 +11,14 @@ import { terser } from "rollup-plugin-terser";
 import gzip from "gzip-size";
 import { prettyTerserConfig, minifiedTerserConfig } from "./config/terser";
 import transformInvariantWarning from './babel/transformInvariantWarning';
+import { BuildType, BundleValue, OutputOptions } from "./types";
+import { baseOutputOptions, external as baseExternals, steps } from "./constants";
+import { prettyPrintBytes } from "./utils";
 
 const pkgInfo = require(resolve(process.cwd(), 'package.json'));
 const { main, peerDependencies, dependencies } = pkgInfo;
 const name = basename(main, ".js");
-const external = ["dns", "fs", "path", "url"];
-
+const external = [...baseExternals];
 
 if (pkgInfo.peerDependencies) {
   external.push(...Object.keys(peerDependencies));
@@ -32,12 +34,6 @@ const externalTest = id => {
   return externalPredicate.test(id);
 };
 
-const prettyPrintBytes = (size) => {
-  if (size / 1000 > 1) {
-    return `${(size / 1000).toFixed(2)}kB`
-  }
-  return `${size}B}`;
-}
 async function getGzippedSize(code, name) {
   const size = await gzip(code);
   return `${name} (gz): ${prettyPrintBytes(size)}`;
@@ -112,41 +108,16 @@ const getPlugins = (isProduction = false) => [
   terser(isProduction ? minifiedTerserConfig : prettyTerserConfig),
 ].filter(Boolean);
 
-type BuildType = 'esm' | 'cjs';
-
-interface BundleValue {
-  code?: string;
-  fileName: string;
-}
-
-interface InputOptions {
-  cache?: any;
-  plugins: any[];
-  input: string;
-  external: any;
+const getInputOptions = ({ production }): InputOptions => ({
+  plugins: getPlugins(production),
+  input: "./src/index.ts",
+  external: externalTest,
   treeshake: {
-    propertyReadSideEffects: boolean;
+    propertyReadSideEffects: false
   }
-}
+})
 
-const getInputOptions = ({ production }): InputOptions => {
-  return {
-    plugins: getPlugins(production),
-    input: "./src/index.ts",
-    external: externalTest,
-    treeshake: {
-      propertyReadSideEffects: false
-    }
-  };
-}
-
-const baseOutputOptions = {
-  sourcemap: true,
-  legacy: true,
-  freeze: false
-};
-
-const getOutputOptions = ({ type, production }: { type: BuildType, production: boolean }) => {
+const getOutputOptions = ({ type, production }: OutputOptions) => {
   if (production) {
     return {
       ...baseOutputOptions,
@@ -163,14 +134,6 @@ const getOutputOptions = ({ type, production }: { type: BuildType, production: b
 }
 
 export default async function build({ watch }) {
-  const steps: Array<{ type: BuildType, production: boolean }> = [
-    { type: "cjs", production: false },
-    { type: "esm", production: false },
-    { type: "cjs", production: true },
-    { type: "esm", production: true }
-  ];
-
-
   if (watch) {
 		return new Promise((_, reject) => {
       steps.map(step => {
