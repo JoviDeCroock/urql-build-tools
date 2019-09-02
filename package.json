@@ -4,7 +4,9 @@
   "description": "The build tools we use for urql packages",
   "main": "dist/index.js",
   "source": "src/index.ts",
-  "bin": "dist/cli.js",
+  "bin": {
+    "urql-build-tools": "dist/cli.js"
+  },
   "sideEffects": false,
   "scripts": {
     "build": "rimraf dist && tsc",

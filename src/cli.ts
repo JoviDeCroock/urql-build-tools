@@ -15,7 +15,7 @@ const run = opts => {
 };
 
 const cli = handler => {
-  const buildTools = sade('@urql/build-tools');
+  const buildTools = sade('urql-build-tools');
 
   	const cmd = type => (_, opts: { watch?: boolean } = {}) => {
       opts.watch = opts.watch || type === "watch";
