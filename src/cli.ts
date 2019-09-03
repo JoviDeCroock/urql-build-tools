@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import build from '.';
-import sade from 'sade';
+import build from ".";
+import sade from "sade";
 
 const run = opts => {
   build(opts)
@@ -15,16 +15,15 @@ const run = opts => {
 };
 
 const cli = handler => {
-  const buildTools = sade('urql-build-tools');
+  const buildTools = sade("urql-build-tools");
 
-  	const cmd = type => (_, opts: { watch?: boolean } = {}) => {
-      opts.watch = opts.watch || type === "watch";
-      handler(opts);
-    };
+  const cmd = type => (_, opts: { cwd?: string; watch?: boolean } = {}) => {
+    opts.watch = opts.watch || type === "watch";
+    opts.cwd = process.cwd();
+    handler(opts);
+  };
 
-	buildTools
-    .version('0.0.1')
-    .option("--watch, -w", "Watch source", false);
+  buildTools.version("0.0.1").option("--watch, -w", "Watch source", false);
 
   buildTools
     .command("build", "", { default: true })
@@ -36,8 +35,7 @@ const cli = handler => {
     .describe("Watch source")
     .action(cmd("watch"));
 
-  	return argv =>
-      buildTools.parse(argv, { alias: { w: ["watch"] } });
-}
+  return argv => buildTools.parse(argv, { alias: { w: ["watch"] } });
+};
 
 cli(run)(process.argv);

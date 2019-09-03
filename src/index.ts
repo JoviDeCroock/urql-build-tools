@@ -48,7 +48,7 @@ if (external.includes("react")) {
   namedExports["react"] = Object.keys(require("react"));
 }
 
-const getPlugins = (isProduction = false) => {
+const getPlugins = (isProduction = false, cwd) => {
   return [
     nodeResolve({
       mainFields: ["module", "jsnext", "main"],
@@ -61,7 +61,7 @@ const getPlugins = (isProduction = false) => {
     }),
     typescript({
       typescript: require("typescript"),
-      cacheRoot: "./node_modules/.cache/.rts2_cache",
+      cacheRoot: `${cwd}/node_modules/.cache/.rts2_cache`,
       useTsconfigDeclarationDir: true,
       tsconfigDefaults: {
         compilerOptions: {
@@ -76,7 +76,7 @@ const getPlugins = (isProduction = false) => {
         ],
         compilerOptions: {
           declaration: !isProduction,
-          declarationDir: "./dist/types/",
+          declarationDir: `${cwd}/dist/types/`,
           target: "es6"
         }
       }
@@ -132,38 +132,39 @@ const getPlugins = (isProduction = false) => {
   ].filter(Boolean);
 };
 
-const getInputOptions = ({ production }): InputOptions => ({
-  plugins: getPlugins(production),
+const getInputOptions = ({ production }, cwd): InputOptions => ({
+  plugins: getPlugins(production, cwd),
   onwarn: () => {},
-  input: "./src/index.ts",
+  input: `${cwd}/src/index.ts`,
   external: externalTest,
   treeshake: {
     propertyReadSideEffects: false
   }
 });
 
-const getOutputOptions = ({ type, production }: OutputOptions) => {
+const getOutputOptions = ({ type, production }: OutputOptions, cwd: string) => {
   if (production) {
     return {
       ...baseOutputOptions,
-      file: `./dist/${name}${type === "esm" ? ".es" : ""}.min.js`,
+      file: `${cwd}/dist/${name}${type === "esm" ? ".es" : ""}.min.js`,
       format: type
     };
   }
   return {
     ...baseOutputOptions,
     esModule: false,
-    file: `./dist/${name}${type === "esm" ? ".es" : ""}.js`,
+    file: `${cwd}/dist/${name}${type === "esm" ? ".es" : ""}.js`,
     format: type
   };
 };
 
-export default async function build({ watch }) {
+export default async function build({ cwd, watch }) {
+  console.log(cwd);
   if (watch) {
     return new Promise((_, reject) => {
       steps.map(step => {
-        const inputOptions = getInputOptions(step);
-        const outputOptions = getOutputOptions(step);
+        const inputOptions = getInputOptions(step, cwd);
+        const outputOptions = getOutputOptions(step, cwd);
         const watchOptions = {
           ...inputOptions,
           output: outputOptions,
@@ -188,9 +189,9 @@ export default async function build({ watch }) {
   try {
     let cache;
     for (let i = 0; i < steps.length; i++) {
-      const inputOptions = getInputOptions(steps[i]);
+      const inputOptions = getInputOptions(steps[i], cwd);
       (inputOptions as any).cache = cache;
-      const outputOptions = getOutputOptions(steps[i]);
+      const outputOptions = getOutputOptions(steps[i], cwd);
       const bundle = await rollup(inputOptions);
       cache = bundle;
       const { output } = await bundle.generate(outputOptions);
