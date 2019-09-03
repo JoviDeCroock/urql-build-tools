@@ -10,12 +10,16 @@ import replace from "rollup-plugin-replace";
 import { terser } from "rollup-plugin-terser";
 import gzip from "gzip-size";
 import { prettyTerserConfig, minifiedTerserConfig } from "./config/terser";
-import transformInvariantWarning from './babel/transformInvariantWarning';
+import transformInvariantWarning from "./babel/transformInvariantWarning";
 import { BundleValue, OutputOptions } from "./types";
-import { baseOutputOptions, external as baseExternals, steps } from "./constants";
+import {
+  baseOutputOptions,
+  external as baseExternals,
+  steps
+} from "./constants";
 import { prettyPrintBytes } from "./utils";
 
-const pkgInfo = require(resolve(process.cwd(), 'package.json'));
+const pkgInfo = require(resolve(process.cwd(), "package.json"));
 const { main, peerDependencies, dependencies } = pkgInfo;
 const name = basename(main, ".js");
 const external = [...baseExternals];
@@ -39,74 +43,85 @@ async function getGzippedSize(code, name) {
   return `${name} (gz): ${prettyPrintBytes(size)}`;
 }
 
-const getPlugins = (isProduction = false) => [
-  nodeResolve({
-    mainFields: ['module', 'jsnext', 'main'],
-    browser: true
-  }),
-  commonjs({
-    ignoreGlobal: true,
-    include: /\/node_modules\//,
-    namedExports: {
-      'react': Object.keys(require('react'))
-    },
-  }),
-  typescript({
-    typescript: require('typescript'),
-    cacheRoot: './node_modules/.cache/.rts2_cache',
-    useTsconfigDeclarationDir: true,
-    tsconfigDefaults: {
-      compilerOptions: {
-        sourceMap: true
+const namedExports = {};
+if (external.includes("react")) {
+  namedExports["react"] = Object.keys(require("react"));
+}
+
+const getPlugins = (isProduction = false) =>
+  [
+    nodeResolve({
+      mainFields: ["module", "jsnext", "main"],
+      browser: true
+    }),
+    commonjs({
+      ignoreGlobal: true,
+      include: /\/node_modules\//,
+      namedExports
+    }),
+    typescript({
+      typescript: require("typescript"),
+      cacheRoot: "./node_modules/.cache/.rts2_cache",
+      useTsconfigDeclarationDir: true,
+      tsconfigDefaults: {
+        compilerOptions: {
+          sourceMap: true
+        }
       },
-    },
-    tsconfigOverride: {
-     exclude: [
-       'src/**/*.test.ts',
-       'src/**/*.test.tsx',
-       'src/**/test-utils/*'
-     ],
-     compilerOptions: {
-        declaration: !isProduction,
-        declarationDir: './dist/types/',
-        target: 'es6',
+      tsconfigOverride: {
+        exclude: [
+          "src/**/*.test.ts",
+          "src/**/*.test.tsx",
+          "src/**/test-utils/*"
+        ],
+        compilerOptions: {
+          declaration: !isProduction,
+          declarationDir: "./dist/types/",
+          target: "es6"
+        }
+      }
+    }),
+    buble({
+      transforms: {
+        unicodeRegExp: false,
+        dangerousForOf: true,
+        dangerousTaggedTemplateString: true
       },
-    },
-  }),
-  buble({
-    transforms: {
-      unicodeRegExp: false,
-      dangerousForOf: true,
-      dangerousTaggedTemplateString: true
-    },
-    objectAssign: 'Object.assign',
-    exclude: 'node_modules/**'
-  }),
-  babel({
-    babelrc: false,
-    extensions: [...DEFAULT_EXTENSIONS, 'ts', 'tsx'],
-    exclude: 'node_modules/**',
-    presets: [],
-    plugins: [
-      transformInvariantWarning,
-      ['babel-plugin-closure-elimination', {}],
-      ['@babel/plugin-transform-object-assign', {}],
-      ['@babel/plugin-transform-react-jsx', {
-        pragma: 'React.createElement',
-        pragmaFrag: 'React.Fragment',
-        useBuiltIns: true
-      }],
-      ['babel-plugin-transform-async-to-promises', {
-        inlineHelpers: true,
-        externalHelpers: true
-      }]
-    ]
-  }),
-  isProduction && replace({
-    'process.env.NODE_ENV': JSON.stringify('production')
-  }),
-  terser(isProduction ? minifiedTerserConfig : prettyTerserConfig),
-].filter(Boolean);
+      objectAssign: "Object.assign",
+      exclude: "node_modules/**"
+    }),
+    babel({
+      babelrc: false,
+      extensions: [...DEFAULT_EXTENSIONS, "ts", "tsx"],
+      exclude: "node_modules/**",
+      presets: [],
+      plugins: [
+        transformInvariantWarning,
+        ["babel-plugin-closure-elimination", {}],
+        ["@babel/plugin-transform-object-assign", {}],
+        [
+          "@babel/plugin-transform-react-jsx",
+          {
+            pragma: "React.createElement",
+            pragmaFrag: "React.Fragment",
+            useBuiltIns: true
+          }
+        ],
+        [
+          "babel-plugin-transform-async-to-promises",
+          {
+            inlineHelpers: true,
+            externalHelpers: true
+          }
+        ]
+      ]
+    }),
+    isProduction &&
+      replace({
+        "process.env.NODE_ENV": JSON.stringify("production")
+      }),
+    terser(isProduction ? minifiedTerserConfig : prettyTerserConfig)
+  ].filter(Boolean);
 
 const getInputOptions = ({ production }): InputOptions => ({
   plugins: getPlugins(production),
@@ -115,15 +130,15 @@ const getInputOptions = ({ production }): InputOptions => ({
   treeshake: {
     propertyReadSideEffects: false
   }
-})
+});
 
 const getOutputOptions = ({ type, production }: OutputOptions) => {
   if (production) {
     return {
       ...baseOutputOptions,
-      file: `./dist/${name}${type === 'esm' ? '.es' : ''}.min.js`,
+      file: `./dist/${name}${type === "esm" ? ".es" : ""}.min.js`,
       format: type
-    }
+    };
   }
   return {
     ...baseOutputOptions,
@@ -131,11 +146,11 @@ const getOutputOptions = ({ type, production }: OutputOptions) => {
     file: `./dist/${name}${type === "esm" ? ".es" : ""}.js`,
     format: type
   };
-}
+};
 
 export default async function build({ watch }) {
   if (watch) {
-		return new Promise((_, reject) => {
+    return new Promise((_, reject) => {
       steps.map(step => {
         const inputOptions = getInputOptions(step);
         const outputOptions = getOutputOptions(step);
@@ -172,14 +187,16 @@ export default async function build({ watch }) {
       const bundleValues: BundleValue[] = Object.values(output);
       for (let i = 0; i < bundleValues.length; i++) {
         const { code, fileName } = bundleValues[i];
-        if (code) { bundleSizes.push(await getGzippedSize(code, fileName)); }
+        if (code) {
+          bundleSizes.push(await getGzippedSize(code, fileName));
+        }
       }
       await bundle.write(outputOptions);
     }
-  } catch(e) {
+  } catch (e) {
     console.error(e);
   }
 
-  console.log('Build success');
+  console.log("Build success");
   bundleSizes.forEach(entry => console.log(entry));
 }
