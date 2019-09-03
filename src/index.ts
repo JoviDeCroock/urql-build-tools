@@ -64,10 +64,10 @@ const getPlugins = (isProduction = false, cwd) => {
         include: "node_modules/**",
         plugins: [
           [
-            require.resolve("babel-plugin-transform-replace-expressions"),
+            "babel-plugin-transform-replace-expressions",
             {
               replace: {
-                "process.env.NODE_ENV": '"production"'
+                "process.env.NODE_ENV": JSON.stringify("production")
               }
             }
           ]
@@ -138,7 +138,8 @@ const getPlugins = (isProduction = false, cwd) => {
     }),
     isProduction &&
       replace({
-        ENVIRONMENT: JSON.stringify("production")
+        ENVIRONMENT: JSON.stringify("production"),
+        "process.env.NODE_ENV": JSON.stringify("production")
       }),
     terser(isProduction ? minifiedTerserConfig : prettyTerserConfig)
   ].filter(Boolean);
@@ -146,7 +147,7 @@ const getPlugins = (isProduction = false, cwd) => {
 
 const getInputOptions = ({ production }, cwd): InputOptions => ({
   plugins: getPlugins(production, cwd),
-  // onwarn: () => {},
+  onwarn: () => {},
   input: `${cwd}/src/index.ts`,
   external: externalTest,
   treeshake: {
