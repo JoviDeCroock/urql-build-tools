@@ -125,6 +125,7 @@ const getPlugins = (isProduction = false) =>
 
 const getInputOptions = ({ production }): InputOptions => ({
   plugins: getPlugins(production),
+  onwarn: () => {},
   input: "./src/index.ts",
   external: externalTest,
   treeshake: {
