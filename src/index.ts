@@ -159,7 +159,6 @@ const getOutputOptions = ({ type, production }: OutputOptions, cwd: string) => {
 };
 
 export default async function build({ cwd, watch }) {
-  console.log(cwd);
   if (watch) {
     return new Promise((_, reject) => {
       steps.map(step => {
