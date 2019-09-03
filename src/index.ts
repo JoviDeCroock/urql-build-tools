@@ -54,6 +54,25 @@ const getPlugins = (isProduction = false, cwd) => {
       mainFields: ["module", "jsnext", "main"],
       browser: true
     }),
+    isProduction &&
+      babel({
+        babelrc: false,
+        configFile: false,
+        compact: false,
+        debug: true,
+        extensions: [...DEFAULT_EXTENSIONS, "ts", "tsx"],
+        include: "node_modules/**",
+        plugins: [
+          [
+            require.resolve("babel-plugin-transform-replace-expressions"),
+            {
+              replace: {
+                "process.env.NODE_ENV": '"production"'
+              }
+            }
+          ]
+        ]
+      }),
     commonjs({
       ignoreGlobal: true,
       include: /\/node_modules\//,
@@ -91,23 +110,6 @@ const getPlugins = (isProduction = false, cwd) => {
       objectAssign: "Object.assign",
       exclude: "node_modules/**"
     }),
-    isProduction &&
-      babel({
-        babelrc: false,
-        configFile: false,
-        compact: false,
-        include: "node_modules/**",
-        plugins: [
-          [
-            require.resolve("babel-plugin-transform-replace-expressions"),
-            {
-              replace: {
-                "process.env.NODE_ENV": '"production"'
-              }
-            }
-          ]
-        ]
-      }),
     babel({
       babelrc: false,
       extensions: [...DEFAULT_EXTENSIONS, "ts", "tsx"],
@@ -144,7 +146,7 @@ const getPlugins = (isProduction = false, cwd) => {
 
 const getInputOptions = ({ production }, cwd): InputOptions => ({
   plugins: getPlugins(production, cwd),
-  onwarn: () => {},
+  // onwarn: () => {},
   input: `${cwd}/src/index.ts`,
   external: externalTest,
   treeshake: {
