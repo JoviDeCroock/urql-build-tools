@@ -48,8 +48,8 @@ if (external.includes("react")) {
   namedExports["react"] = Object.keys(require("react"));
 }
 
-const getPlugins = (isProduction = false) =>
-  [
+const getPlugins = (isProduction = false) => {
+  return [
     nodeResolve({
       mainFields: ["module", "jsnext", "main"],
       browser: true
@@ -97,6 +97,14 @@ const getPlugins = (isProduction = false) =>
       presets: [],
       plugins: [
         transformInvariantWarning,
+        isProduction && [
+          "babel-plugin-transform-replace-expressions",
+          {
+            replace: {
+              "process.env.NODE_ENV": '"production"'
+            }
+          }
+        ],
         ["babel-plugin-closure-elimination", {}],
         ["@babel/plugin-transform-object-assign", {}],
         [
@@ -114,14 +122,15 @@ const getPlugins = (isProduction = false) =>
             externalHelpers: true
           }
         ]
-      ]
+      ].filter(Boolean)
     }),
     isProduction &&
       replace({
-        "process.env.NODE_ENV": JSON.stringify("production")
+        ENVIRONMENT: JSON.stringify("production")
       }),
     terser(isProduction ? minifiedTerserConfig : prettyTerserConfig)
   ].filter(Boolean);
+};
 
 const getInputOptions = ({ production }): InputOptions => ({
   plugins: getPlugins(production),
