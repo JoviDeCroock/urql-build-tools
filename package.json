@@ -3,7 +3,6 @@
   "version": "0.0.1",
   "description": "The build tools we use for urql packages",
   "main": "dist/index.js",
-  "source": "src/index.ts",
   "bin": {
     "urql-build-tools": "dist/cli.js"
   },
@@ -62,7 +61,6 @@
     "@babel/plugin-transform-react-jsx": "^7.3.0",
     "babel-plugin-closure-elimination": "^1.3.0",
     "babel-plugin-transform-async-to-promises": "^0.8.14",
-    "babel-plugin-transform-replace-expressions": "^0.2.0",
     "gzip-size": "^5.1.1",
     "pretty-bytes": "^5.3.0",
     "rollup": "^1.20.3",

@@ -54,25 +54,6 @@ const getPlugins = (isProduction = false, cwd) => {
       mainFields: ["module", "jsnext", "main"],
       browser: true
     }),
-    isProduction &&
-      babel({
-        babelrc: false,
-        configFile: false,
-        compact: false,
-        debug: true,
-        extensions: [...DEFAULT_EXTENSIONS, "ts", "tsx"],
-        include: "node_modules/**",
-        plugins: [
-          [
-            "babel-plugin-transform-replace-expressions",
-            {
-              replace: {
-                "process.env.NODE_ENV": JSON.stringify("production")
-              }
-            }
-          ]
-        ]
-      }),
     commonjs({
       ignoreGlobal: true,
       include: /\/node_modules\//,
@@ -199,13 +180,10 @@ export default async function build({ cwd, watch }) {
 
   const bundleSizes: Array<string> = [];
   try {
-    let cache;
     for (let i = 0; i < steps.length; i++) {
       const inputOptions = getInputOptions(steps[i], cwd);
-      (inputOptions as any).cache = cache;
       const outputOptions = getOutputOptions(steps[i], cwd);
       const bundle = await rollup(inputOptions);
-      cache = bundle;
       const { output } = await bundle.generate(outputOptions);
       const bundleValues: BundleValue[] = Object.values(output);
       for (let i = 0; i < bundleValues.length; i++) {
