@@ -61,6 +61,7 @@ const getPlugins = (isProduction = false, cwd) => {
     }),
     typescript({
       typescript: require("typescript"),
+      tsconfig: `${cwd}/tsconfig.json`,
       cacheRoot: `${cwd}/node_modules/.cache/.rts2_cache`,
       useTsconfigDeclarationDir: true,
       tsconfigDefaults: {
@@ -90,6 +91,23 @@ const getPlugins = (isProduction = false, cwd) => {
       objectAssign: "Object.assign",
       exclude: "node_modules/**"
     }),
+    isProduction &&
+      babel({
+        babelrc: false,
+        configFile: false,
+        compact: false,
+        include: "node_modules/**",
+        plugins: [
+          [
+            require.resolve("babel-plugin-transform-replace-expressions"),
+            {
+              replace: {
+                "process.env.NODE_ENV": '"production"'
+              }
+            }
+          ]
+        ]
+      }),
     babel({
       babelrc: false,
       extensions: [...DEFAULT_EXTENSIONS, "ts", "tsx"],
@@ -97,14 +115,6 @@ const getPlugins = (isProduction = false, cwd) => {
       presets: [],
       plugins: [
         transformInvariantWarning,
-        isProduction && [
-          "babel-plugin-transform-replace-expressions",
-          {
-            replace: {
-              "process.env.NODE_ENV": '"production"'
-            }
-          }
-        ],
         ["babel-plugin-closure-elimination", {}],
         ["@babel/plugin-transform-object-assign", {}],
         [
@@ -122,7 +132,7 @@ const getPlugins = (isProduction = false, cwd) => {
             externalHelpers: true
           }
         ]
-      ].filter(Boolean)
+      ]
     }),
     isProduction &&
       replace({
