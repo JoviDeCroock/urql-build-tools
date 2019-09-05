@@ -22,7 +22,7 @@ import { prettyPrintBytes } from "./utils";
 const pkgInfo = require(resolve(process.cwd(), "package.json"));
 const { main, peerDependencies, dependencies } = pkgInfo;
 const name = basename(main, ".js");
-const external = [...baseExternals];
+let external = [...baseExternals];
 
 if (pkgInfo.peerDependencies) {
   external.push(...Object.keys(peerDependencies));
@@ -31,6 +31,8 @@ if (pkgInfo.peerDependencies) {
 if (pkgInfo.dependencies) {
   external.push(...Object.keys(dependencies));
 }
+
+external = external.filter(x => x !== "tiny-invariant");
 
 const externalPredicate = new RegExp(`^(${external.join("|")})($|/)`);
 const externalTest = id => {
