@@ -1,5 +1,4 @@
-import { rollup, watch as rollupWatch, InputOptions } from "rollup";
-import { basename, resolve } from "path";
+import { resolve } from "path";
 import { DEFAULT_EXTENSIONS } from "@babel/core";
 import commonjs from "rollup-plugin-commonjs";
 import nodeResolve from "rollup-plugin-node-resolve";
@@ -8,20 +7,12 @@ import buble from "rollup-plugin-buble";
 import babel from "rollup-plugin-babel";
 import replace from "rollup-plugin-replace";
 import { terser } from "rollup-plugin-terser";
-import gzip from "gzip-size";
 import { prettyTerserConfig, minifiedTerserConfig } from "./config/terser";
 import transformInvariantWarning from "./babel/transformInvariantWarning";
-import { BundleValue, OutputOptions } from "./types";
-import {
-  baseOutputOptions,
-  external as baseExternals,
-  steps
-} from "./constants";
-import { prettyPrintBytes } from "./utils";
 
+const baseExternals = ["dns", "fs", "path", "url"];
 const pkgInfo = require(resolve(process.cwd(), "package.json"));
-const { main, peerDependencies, dependencies } = pkgInfo;
-const name = basename(main, ".js");
+const { peerDependencies, dependencies } = pkgInfo;
 let external = [...baseExternals];
 
 if (pkgInfo.peerDependencies) {
@@ -40,17 +31,12 @@ const externalTest = id => {
   return externalPredicate.test(id);
 };
 
-async function getGzippedSize(code, name) {
-  const size = await gzip(code);
-  return `${name} (gz): ${prettyPrintBytes(size)}`;
-}
-
 const namedExports = {};
 if (external.includes("react")) {
   namedExports["react"] = Object.keys(require("react"));
 }
 
-const getPlugins = (isProduction = false, cwd) => {
+export const makePlugins = (isProduction = false, cwd) => {
   return [
     nodeResolve({
       mainFields: ["module", "jsnext", "main"],
@@ -128,78 +114,34 @@ const getPlugins = (isProduction = false, cwd) => {
   ].filter(Boolean);
 };
 
-const getInputOptions = ({ production }, cwd): InputOptions => ({
-  plugins: getPlugins(production, cwd),
-  onwarn: () => {},
-  input: `${cwd}/src/index.ts`,
+export const makeConfig = ({
+  input = "./src/index.ts",
+  isProduction = false,
+  outputPath = "./dist"
+} = {}) => ({
   external: externalTest,
+  input,
+  onwarn: () => {},
+  ouput: [
+    {
+      sourcemap: !isProduction,
+      legacy: true,
+      freeze: false,
+      esModule: isProduction ? undefined : false,
+      format: "cjs",
+      dir: `${outputPath}/cjs${isProduction ? "/min" : ""}`
+    },
+    {
+      sourcemap: !isProduction,
+      legacy: true,
+      freeze: false,
+      esModule: isProduction ? undefined : false,
+      format: "esm",
+      dir: `${outputPath}/es${isProduction ? "/min" : ""}`
+    }
+  ],
+  plugins: makePlugins(isProduction, outputPath),
   treeshake: {
     propertyReadSideEffects: false
   }
 });
-
-const getOutputOptions = ({ type, production }: OutputOptions, cwd: string) => {
-  if (production) {
-    return {
-      ...baseOutputOptions,
-      file: `${cwd}/dist/${name}${type === "esm" ? ".es" : ""}.min.js`,
-      format: type
-    };
-  }
-  return {
-    ...baseOutputOptions,
-    esModule: false,
-    file: `${cwd}/dist/${name}${type === "esm" ? ".es" : ""}.js`,
-    format: type
-  };
-};
-
-export default async function build({ cwd, watch }) {
-  if (watch) {
-    return new Promise((_, reject) => {
-      steps.map(step => {
-        const inputOptions = getInputOptions(step, cwd);
-        const outputOptions = getOutputOptions(step, cwd);
-        const watchOptions = {
-          ...inputOptions,
-          output: outputOptions,
-          watch: { exclude: "node_modules/**" }
-        };
-        rollupWatch(watchOptions as any).on("event", e => {
-          if (e.code === "FATAL") {
-            console.error(e);
-            return reject(e.error);
-          } else if (e.code === "ERROR") {
-            console.error(e.error);
-          }
-          if (e.code === "END") {
-            console.log("success");
-          }
-        });
-      });
-    });
-  }
-
-  const bundleSizes: Array<string> = [];
-  try {
-    for (let i = 0; i < steps.length; i++) {
-      const inputOptions = getInputOptions(steps[i], cwd);
-      const outputOptions = getOutputOptions(steps[i], cwd);
-      const bundle = await rollup(inputOptions);
-      const { output } = await bundle.generate(outputOptions);
-      const bundleValues: BundleValue[] = Object.values(output);
-      for (let i = 0; i < bundleValues.length; i++) {
-        const { code, fileName } = bundleValues[i];
-        if (code) {
-          bundleSizes.push(await getGzippedSize(code, fileName));
-        }
-      }
-      await bundle.write(outputOptions);
-    }
-  } catch (e) {
-    console.error(e);
-  }
-
-  console.log("Build success");
-  bundleSizes.forEach(entry => console.log(entry));
-}
