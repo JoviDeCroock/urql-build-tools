@@ -59,9 +59,9 @@ export const makePlugins = (isProduction = false, cwd) => {
       },
       tsconfigOverride: {
         exclude: [
-          "src/**/*.test.ts",
-          "src/**/*.test.tsx",
-          "src/**/test-utils/*"
+          `${cwd}/src/**/*.test.ts`,
+          `${cwd}/src/**/*.test.tsx`,
+          `${cwd}/src/**/test-utils/*`
         ],
         compilerOptions: {
           declaration: !isProduction,
@@ -77,12 +77,12 @@ export const makePlugins = (isProduction = false, cwd) => {
         dangerousTaggedTemplateString: true
       },
       objectAssign: "Object.assign",
-      exclude: "node_modules/**"
+      exclude: `${cwd}/node_modules/**`
     }),
     babel({
       babelrc: false,
       extensions: [...DEFAULT_EXTENSIONS, "ts", "tsx"],
-      exclude: "node_modules/**",
+      exclude: `${cwd}/node_modules/**`,
       presets: [],
       plugins: [
         transformInvariantWarning,
@@ -114,33 +114,10 @@ export const makePlugins = (isProduction = false, cwd) => {
   ].filter(Boolean);
 };
 
-export const makeConfig = ({
-  input = "./src/index.ts",
-  isProduction = false,
-  outputPath = "./dist"
-} = {}) => ({
+export const makeConfig = ({ isProduction = false } = {}) => ({
   external: externalTest,
-  input,
   onwarn: () => {},
-  ouput: [
-    {
-      sourcemap: !isProduction,
-      legacy: true,
-      freeze: false,
-      esModule: isProduction ? undefined : false,
-      format: "cjs",
-      dir: `${outputPath}/cjs${isProduction ? "/min" : ""}`
-    },
-    {
-      sourcemap: !isProduction,
-      legacy: true,
-      freeze: false,
-      esModule: isProduction ? undefined : false,
-      format: "esm",
-      dir: `${outputPath}/es${isProduction ? "/min" : ""}`
-    }
-  ],
-  plugins: makePlugins(isProduction, outputPath),
+  plugins: makePlugins(isProduction, process.cwd()),
   treeshake: {
     propertyReadSideEffects: false
   }
