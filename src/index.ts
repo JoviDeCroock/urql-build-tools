@@ -26,12 +26,12 @@ if (pkgInfo.dependencies) {
 external = external.filter(x => x !== "tiny-invariant");
 
 const externalPredicate = new RegExp(`^(${external.join("|")})($|/)`);
-const externalTest = id => {
+export const externalTest = id => {
   if (id === "babel-plugin-transform-async-to-promises/helpers") return false;
   return externalPredicate.test(id);
 };
 
-const namedExports = {};
+export const namedExports = {};
 if (external.includes("react")) {
   namedExports["react"] = Object.keys(require("react"));
 }
